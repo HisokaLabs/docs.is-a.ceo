@@ -1,0 +1,502 @@
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Site tokens, dark */
+  --isa-paper: #131310;
+  --isa-raise: #1b1b17;
+  --isa-sunken: #201f1a;
+  --isa-ink: #f2f1ea;
+  --isa-muted: #a9a89e;
+  --isa-faint: #97968c;
+  --isa-line: #2e2e28;
+  --isa-line-strong: #414137;
+  --isa-accent: #7fd3a0;
+  --isa-on-accent: #131310;
+  --isa-warn: #e0a94a;
+  --isa-err: #ff8a80;
+  --isa-info: #a5a3f0;
+  --isa-r-sm: 6px;
+  --isa-r-md: 10px;
+  --isa-r-lg: 16px;
+  --isa-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --isa-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --sl-color-black: var(--isa-paper);
+  --sl-color-bg: var(--isa-paper);
+  --sl-color-bg-nav: var(--isa-paper);
+  --sl-color-bg-sidebar: var(--isa-paper);
+  --sl-color-bg-inline-code: var(--isa-sunken);
+
+  --sl-color-white: var(--isa-ink);
+  --sl-color-gray-1: var(--isa-ink);
+  --sl-color-gray-2: var(--isa-muted);
+  --sl-color-gray-3: var(--isa-faint);
+  --sl-color-gray-4: #6e6d63;
+  --sl-color-gray-5: var(--isa-line-strong);
+  --sl-color-gray-6: var(--isa-line);
+  --sl-color-gray-7: var(--isa-raise);
+
+  --sl-color-text: var(--isa-muted);
+  --sl-color-text-accent: var(--isa-accent);
+  --sl-color-text-invert: var(--isa-on-accent);
+  --sl-color-accent: var(--isa-accent);
+  --sl-color-accent-high: #b9ecc9;
+  --sl-color-accent-low: #1d3a2b;
+  --sl-color-bg-accent: var(--isa-accent);
+
+  --sl-color-hairline: var(--isa-line);
+  --sl-color-hairline-light: var(--isa-line);
+  --sl-color-hairline-shade: var(--isa-line);
+
+  --sl-font: var(--isa-sans);
+  --sl-font-mono: var(--isa-mono);
+  --sl-text-base: 1.0625rem;
+  --sl-line-height: 1.65;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Site tokens, light */
+  --isa-paper: #faf9f5;
+  --isa-raise: #ffffff;
+  --isa-sunken: #f2f1ea;
+  --isa-ink: #191a17;
+  --isa-muted: #56564f;
+  --isa-faint: #6e6d63;
+  --isa-line: #e3e1d6;
+  --isa-line-strong: #cdcab9;
+  --isa-accent: #0f5c3f;
+  --isa-on-accent: #faf9f5;
+  --isa-warn: #8a5a00;
+  --isa-err: #a32020;
+  --isa-info: #5b3fa8;
+
+  --sl-color-black: var(--isa-paper);
+  --sl-color-bg: var(--isa-paper);
+  --sl-color-bg-nav: var(--isa-paper);
+  --sl-color-bg-sidebar: var(--isa-paper);
+  --sl-color-bg-inline-code: var(--isa-sunken);
+
+  --sl-color-white: var(--isa-ink);
+  --sl-color-gray-1: var(--isa-ink);
+  --sl-color-gray-2: var(--isa-muted);
+  --sl-color-gray-3: var(--isa-faint);
+  --sl-color-gray-4: #8d8c81;
+  --sl-color-gray-5: var(--isa-line-strong);
+  --sl-color-gray-6: var(--isa-line);
+  --sl-color-gray-7: var(--isa-sunken);
+
+  --sl-color-text: var(--isa-muted);
+  --sl-color-text-accent: var(--isa-accent);
+  --sl-color-text-invert: var(--isa-on-accent);
+  --sl-color-accent: var(--isa-accent);
+  --sl-color-accent-high: #0a3f2b;
+  --sl-color-accent-low: #e4efe9;
+  --sl-color-bg-accent: var(--isa-accent);
+
+  --sl-color-hairline: var(--isa-line);
+  --sl-color-hairline-light: var(--isa-line);
+  --sl-color-hairline-shade: var(--isa-line);
+}
+
+:root {
+  --sl-content-width: 46rem;
+  --sl-sidebar-width: 17rem;
+  /* The site's reference pages run a tighter heading scale than Starlight's
+     default (h2 24px against 35px), which is what keeps a long table page
+     scannable. */
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.125rem;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--isa-accent) 22%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--isa-accent);
+  outline-offset: 3px;
+}
+
+/* The site has exactly one blurred surface, its sticky header. Matching it keeps
+   the two products reading as one. */
+.header {
+  background-color: color-mix(in oklab, var(--isa-paper) 84%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  letter-spacing: -0.02em;
+}
+
+.site-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+
+.site-brand-mark svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--isa-accent);
+}
+
+.site-brand-crown {
+  fill: var(--isa-paper);
+  stroke: var(--isa-paper);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.site-brand-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.28em;
+  color: var(--isa-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.site-brand-word b {
+  color: var(--isa-accent);
+  font-weight: 600;
+}
+
+/* Sidebar: mono group labels and a left rule on the current page, the same
+   treatment the site gives its section lists. */
+.sidebar-content .group-label > span,
+.sidebar-content summary .group-label > span {
+  font-family: var(--isa-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--isa-faint);
+}
+
+.sidebar-content a {
+  font-size: 0.875rem;
+  border-radius: 0;
+}
+
+.sidebar-content a:hover {
+  color: var(--isa-ink);
+}
+
+/* Starlight fills the current page with a solid accent block. The site marks it
+   with a rule at the left edge instead, which keeps the sidebar quiet. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+  background-color: transparent;
+  color: var(--isa-ink);
+  font-weight: 550;
+  box-shadow: inset 2px 0 0 var(--isa-accent);
+}
+
+/* Prose: the site sets headings tighter than Starlight's default scale. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+  letter-spacing: -0.02em;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 3rem;
+}
+
+.sl-markdown-content code:not(:where(.not-content *)) {
+  border: 1px solid var(--isa-line);
+  border-radius: var(--isa-r-sm);
+  padding: 0.1em 0.35em;
+  font-size: 0.85em;
+  color: var(--isa-ink);
+  overflow-wrap: normal;
+}
+
+/* Tables: hairlines instead of Starlight's edge-to-edge cells. The site frames
+   its tables in a bordered card; that frame is the scroll container here, so a
+   narrow screen scrolls the table instead of shredding its columns. */
+.sl-markdown-content .table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.sl-markdown-content table:not(:where(.not-content *)) {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  border-block: 1px solid var(--isa-line);
+  font-size: 0.9375rem;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  border-bottom: 1px solid var(--isa-line);
+  padding: 0.7rem 1rem;
+  vertical-align: top;
+  text-align: start;
+}
+
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+  padding-inline-start: 1rem;
+}
+
+.sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
+  padding-inline-end: 1rem;
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--isa-sunken);
+  color: var(--isa-faint);
+  font-family: var(--isa-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sl-markdown-content td:not(:where(.not-content *)) {
+  color: var(--isa-muted);
+}
+
+.sl-markdown-content tbody tr:hover:not(:where(.not-content *)) {
+  background: color-mix(in oklab, var(--isa-accent) 5%, transparent);
+}
+
+/* Narrow screens: let the columns size to their content and wrap. The wrapper
+   stays as a safety net for a table that still cannot fit, but forcing a
+   min-width here clipped the widest column mid-word on a phone, which is worse
+   than a tighter column that wraps. */
+@media (max-width: 50em) {
+  .sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+    padding-inline: 0.75rem;
+  }
+
+  .sl-markdown-content th:not(:where(.not-content *)) {
+    white-space: normal;
+  }
+}
+
+/* Touch targets. Starlight sizes its sidebar links, menu button and search
+   trigger for a mouse pointer: 28px to 40px tall. A finger needs 44px, so on
+   coarse pointers the padding grows instead of the type size. Links inside a
+   paragraph are left alone on purpose: growing them inflates the line box and
+   breaks the reading rhythm, and WCAG exempts inline links in text. */
+@media (pointer: coarse), (max-width: 50em) {
+  .sidebar-content a,
+  .sidebar-content summary,
+  .pagination-links a,
+  site-search button[data-open-modal],
+  .sl-menu-button,
+  .right-sidebar a,
+  .mobile-toc a,
+  starlight-toc a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-block: 0.5rem;
+  }
+
+  .sl-menu-button {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* Heading anchors are icon buttons: 29px tall, so they fail the same way. */
+  .sl-markdown-content .sl-anchor-link,
+  .sl-skip-link {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* The copy button inside a code frame is 32px. */
+  .expressive-code button,
+  site-search [data-close-modal] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Four-column reference tables are label / short / medium / long. Without a
+   floor the browser gives the narrow column a tiny share and wraps it to four
+   lines while the widest column sits half empty. */
+@media (min-width: 50em) {
+  .sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+    min-width: 9ch;
+  }
+
+  .sl-markdown-content table:has(thead th:last-child:nth-child(4)):not(:where(.not-content *)) {
+    table-layout: fixed;
+  }
+
+  .sl-markdown-content table:has(thead th:last-child:nth-child(4)) thead th:nth-child(1) {
+    width: 15%;
+  }
+
+  .sl-markdown-content table:has(thead th:last-child:nth-child(4)) thead th:nth-child(2) {
+    width: 14%;
+  }
+
+  .sl-markdown-content table:has(thead th:last-child:nth-child(4)) thead th:nth-child(3) {
+    width: 29%;
+  }
+
+  .sl-markdown-content table:has(thead th:last-child:nth-child(4)) thead th:nth-child(4) {
+    width: 42%;
+  }
+}
+
+/* Asides: the site's palette carries four semantic colours, so the aside takes
+   its tint from those instead of Starlight's blue/purple/orange/red, and the
+   left stripe becomes a full hairline box with a mono label. */
+.starlight-aside {
+  --aside-color: var(--isa-info);
+  border: 1px solid color-mix(in oklab, var(--aside-color) 30%, var(--isa-line));
+  border-inline-start-width: 1px;
+  border-radius: var(--isa-r-md);
+  background: color-mix(in oklab, var(--aside-color) 6%, var(--isa-raise));
+  color: var(--isa-muted);
+  padding: 0.9rem 1.1rem 1rem;
+}
+
+.starlight-aside--note {
+  --aside-color: var(--isa-info);
+}
+
+.starlight-aside--tip {
+  --aside-color: var(--isa-accent);
+}
+
+.starlight-aside--caution {
+  --aside-color: var(--isa-warn);
+}
+
+.starlight-aside--danger {
+  --aside-color: var(--isa-err);
+}
+
+.starlight-aside__title {
+  font-family: var(--isa-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--aside-color);
+}
+
+.starlight-aside__content a {
+  color: var(--aside-color);
+}
+
+.starlight-aside code:not(:where(.not-content *)) {
+  border-color: color-mix(in oklab, var(--aside-color) 24%, var(--isa-line));
+  background: var(--isa-raise);
+}
+
+/* The page title gets the hairline the site puts under a page lead, so the
+   heading does not sit in the same block as the first paragraph. */
+.content-panel h1#_top {
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--isa-line);
+  margin-bottom: 1.6rem;
+}
+
+/* Code blocks: sunken panel with the site's hairline, not a floating card. The
+   site uses no shadows anywhere, so the frame carries none. */
+.expressive-code .frame,
+.expressive-code figure.frame {
+  box-shadow: none !important;
+}
+
+.expressive-code .frame,
+.expressive-code .frame.has-title:not(.is-terminal) .header {
+  background: var(--isa-sunken) !important;
+}
+
+.expressive-code .frame pre {
+  background: var(--isa-sunken) !important;
+}
+
+.expressive-code .frame .header {
+  border-bottom-color: var(--isa-line) !important;
+}
+
+.expressive-code .frame.has-title .title {
+  font-family: var(--isa-mono);
+  font-size: 0.75rem;
+  color: var(--isa-faint) !important;
+}
+
+/* Pagination and the search trigger read as the site's small controls: a
+   hairline box that answers on hover, no shadow. */
+.pagination-links a {
+  border-radius: var(--isa-r-md);
+  border-color: var(--isa-line);
+  box-shadow: none;
+  padding: 0.7rem 0.9rem;
+}
+
+.pagination-links a:hover {
+  border-color: var(--isa-line-strong);
+  background: var(--isa-raise);
+}
+
+.pagination-links .link-title {
+  color: var(--isa-ink);
+}
+
+site-search button[data-open-modal] {
+  border-radius: var(--isa-r-sm);
+  border-color: var(--isa-line);
+  box-shadow: none;
+  background: var(--isa-paper);
+  color: var(--isa-faint);
+}
+
+site-search button[data-open-modal]:hover {
+  border-color: var(--isa-line-strong);
+  color: var(--isa-ink);
+}
+
+.right-group .social-icons::after {
+  border-inline-end-color: var(--isa-line);
+}
+
+starlight-theme-select select {
+  border-radius: var(--isa-r-sm);
+  border-color: var(--isa-line);
+  color: var(--isa-faint);
+}
+
+/* Visible focus on the controls Starlight draws itself. */
+.pagination-links a:focus-visible,
+site-search button[data-open-modal]:focus-visible,
+starlight-theme-select select:focus-visible {
+  outline: 2px solid var(--isa-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "open-subdomains-docs-md",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Markdown documentation for the open-subdomains registry, built with Astro Starlight and styled from the is-a.ceo website.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.6",
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.4.7"
+  }
+}
