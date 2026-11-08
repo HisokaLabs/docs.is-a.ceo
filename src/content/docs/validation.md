@@ -91,11 +91,11 @@ Several of these can come back in one run, because the first pass collects every
 | --- | --- |
 | `owner "somebody-with-a-very-long-name" is longer than 39 characters` | Above the GitHub username cap |
 | `owner "jane" contains a control character; write the plain GitHub username` | A zero-width or control character pasted in |
-| `owner "jane" already has mc in is-a.ceo, one subdomain per person` | A second claim in the same zone |
 
-`@` does not count against the quota, because the apex is the zone rather than a
-claim. Neither does a wildcard such as `*.app`, nor an auxiliary entry such as
-`_vercel.jane`, which belongs to the name it verifies.
+There is no per-owner limit, so holding a second name in the same zone is
+accepted. What the validator still records is which owner holds each name, so a
+wildcard such as `*.app` or an auxiliary entry such as `_vercel.jane` is only
+accepted on a base its own owner holds.
 
 `scripts/verify-owners.js` is a separate step, and it compares against the pull
 request author instead of the registry alone:

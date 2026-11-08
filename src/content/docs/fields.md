@@ -12,7 +12,7 @@ The key list is closed. A key outside it fails the build with `unknown key "..."
 | `domain` | yes | lowercase, must be listed in `zones` | The zone this name belongs to. `is-a.ceo` today. |
 | `subdomain` | yes | see the shapes below | The label being claimed. Must match the filename. |
 | `owner` | yes | ≤ 39 characters, no control characters | Your GitHub username. Must match the pull request author. |
-| `email` | no | ≤ 254 characters, format-checked | Contact address for maintainers. The fastest way to reach you. |
+| `email` | no | ≤ 254 characters, format-checked | Contact address for maintainers. The fastest way to reach you, and how a maintainer gets in touch when your GitHub profile shows no contact detail. |
 | `proxied` | no | `true` or `false`, defaults to `false` | Route A/AAAA/CNAME through the Cloudflare proxy. |
 | `repo` | no | ≤ 200 characters | `owner/repo`, `github.com/owner/repo`, or a full `https://` URL. Shown on the site. |
 | `description` | no | ≤ 200 characters | One line, shown on the site. |

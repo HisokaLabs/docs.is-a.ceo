@@ -42,6 +42,10 @@ Two fields do the work: `subdomain` and `owner`. The rest are optional, and leav
 :::caution
 `owner` has to be your own GitHub username, and the pull request has to be
 opened by the account it names. CI compares the two and fails the build when they differ.
+
+The name also has to be for a personal or non-commercial site, and the site behind
+it has to be reachable and finished. A parked page or a placeholder is refused. See
+[the rules every claim agrees to](./policy/#the-rules-every-claim-agrees-to).
 :::
 
 ## Run the checks locally
@@ -52,7 +56,7 @@ npm run verify
 
 That is the same command CI runs, in the same order: `npm run check` validates
 `domains/`, `npm run check:format` checks the shape of the change, and
-`npm test` runs the 128 test cases. A local pass is the same verdict the
+`npm test` runs the 129 test cases. A local pass is the same verdict the
 workflow will reach.
 
 One difference, and it is deliberate. The per-author scope rules answer "may this author touch this path", which needs to know who the author is. Without a

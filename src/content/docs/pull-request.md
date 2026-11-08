@@ -42,7 +42,7 @@ One job could not do both. It would have to either run the zone check on every p
 `.github/pull_request_template.md` asks for four things, and leaves two of them as
 marked sections.
 
-The author ticks five boxes: agreement to the Terms, a reachable URL, `owner` as their own username, one subdomain per person, and a passing `npm run verify` locally.
+The author ticks four boxes: agreement to the Terms, a reachable URL, `owner` as their own username, and a passing `npm run verify` locally.
 
 Then two sections, each wrapped in an HTML comment pair:
 

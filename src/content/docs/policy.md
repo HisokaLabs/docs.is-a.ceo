@@ -87,11 +87,18 @@ linked to another account. Put your own record one label deeper.
 
 ## The rules every claim agrees to
 
-- One subdomain per person per zone, per purpose. CI enforces it: a second entry
-  with the same `owner` in the same zone fails the build. `@` and auxiliary entries
-  do not count.
+- There is no limit on how many subdomains one person holds in a zone. Each
+  name is its own file, and a second, third or tenth entry with the same `owner`
+  is accepted.
 - `owner` must be your own GitHub username, and the pull request has to be opened by
   that account.
+- Your contact detail has to be enough to reach you. Either `owner` or `email` must
+  lead to someone who answers, because that is who a maintainer contacts when a
+  name is reported or breaks.
+- Personal and non-commercial use only. No shop, no business site, no advertising,
+  and no claiming a name to sell, rent or park it for resale.
+- The site behind the name has to be reachable and finished when you open the pull
+  request. A parked page, a placeholder or an empty repository is refused.
 - No malware, phishing, or content that would get the whole zone delisted.
 - Content has to be legal in the Netherlands, where the zones are hosted. One
   claimant's problem is every claimant's problem, because a delisting takes the

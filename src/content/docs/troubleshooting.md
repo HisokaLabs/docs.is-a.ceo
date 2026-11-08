@@ -15,7 +15,6 @@ that caused it, and the ones worth learning by sight are the ones CI prints befo
 | `file must be named "jane.is-a.ceo.json"` | The filename and the `subdomain` inside disagree. Rename the file. |
 | `"admin" is reserved by the registry` | Pick another label. The full policy is in [Name policy](./policy/). |
 | `"blog" is a generic word` | Not a failure. A warning, and a maintainer will probably ask for your GitHub handle instead. |
-| `owner "jane" already has mc in is-a.ceo, one subdomain per person` | One name per person per zone. Release the old one through a maintainer, or use a different zone. |
 | `must define at least one of records.A, AAAA, CNAME, MX, NS, SRV, PTR, or TXT alone` | `records: {}`. Delete the key for the GitHub Pages default, or put a record in it. |
 | `invalid JSON at position 412` | A missing comma, a trailing comma, or a smart quote pasted from a document. |
 | `"203.0.113.10" is not a public IPv4 address` | The documentation ranges are refused like any private address. Use the real one. |
