@@ -14,7 +14,7 @@ that caused it, and the ones worth learning by sight are the ones CI prints befo
 | `zone "is-a.co" is not a managed zone (is-a.ceo)` | A typo in `domain`. |
 | `file must be named "jane.is-a.ceo.json"` | The filename and the `subdomain` inside disagree. Rename the file. |
 | `"admin" is reserved by the registry` | Pick another label. The full policy is in [Name policy](./policy/). |
-| `"blog" is a generic word` | Not a failure. A warning, and a maintainer will probably ask for your GitHub handle instead. |
+| `"blog" is reserved` | The word is on `registry/reserved.json`. Pick a personal handle. |
 | `must define at least one of records.A, AAAA, CNAME, MX, NS, SRV, PTR, or TXT alone` | `records: {}`. Delete the key for the GitHub Pages default, or put a record in it. |
 | `invalid JSON at position 412` | A missing comma, a trailing comma, or a smart quote pasted from a document. |
 | `"203.0.113.10" is not a public IPv4 address` | The documentation ranges are refused like any private address. Use the real one. |
@@ -26,25 +26,23 @@ One failure has no message worth reading, because it never gets that far: on Win
 | Message | Fix |
 | --- | --- |
 | `a pull request may only add a file under domains/, or update the documentation` | Split the unrelated change into its own pull request. |
-| `only a maintainer can change this file` | You touched `_meta.json`, `SCHEMA.json`, `.github/` or `CODEOWNERS`. Drop it from this pull request. |
-| `only a maintainer can change the validator, the DNS config or the test suite` | You touched `scripts/`, `test/`, `dnsconfig.js` or `package.json`. Same fix. |
+| `only a trusted author can change this` | You touched `registry/`, `.github/`, `scripts/` or `dnsconfig.js`. Drop it from this pull request. |
+| `only an admin can change the trusted list` | `registry/trusted.json` is admin-only. |
 | `this pull request touches 6 files under domains/` | A claim is one file, plus its `_vercel` sidecar. |
-| `deleting a name is a maintainer action` | Ask a maintainer to release it, even when the entry is yours. |
+| `releasing it is their call or a trusted author's` | Ask the owner or a trusted author to remove the entry, even when it is yours. |
 
 It passes locally and fails in CI. Three reasons, in order of likelihood.
 
 `npm run verify` without a `PR_AUTHOR` skips the per-author scope rules, because
 "may this author touch this path" has no answer without an author. CI sets it, so CI applies them. Run `PR_AUTHOR=your-name npm run verify` to see the same verdict.
 
-The local run may not have the base branch. The shape rules and the `_meta.json` policy comparison diff against `origin/main`; when it is missing, the validator refuses to pass blind with `the base branch "main" could not be read`. Fetch it.
+The local run may not have the base branch. The policy comparison reads `registry/*.json` at `origin/main`; without it, the comparison is skipped, so a local pass does not prove the policy rules. Run `git fetch origin main` first.
 
 The change may be a symlink or a file in a subdirectory, both of which are refused with a message that names the reason. Neither is visible in a normal `git diff`.
 
 ## It passed, but a maintainer asked for a change
 
-Two warnings produce a green check and a failed push. Neither is a validator bug.
-
-A generic label warns but passes. The name is claimable, and the maintainer is allowed to ask for something more personal.
+One warning produces a green check and a failed push. It is not a validator bug.
 
 A `TXT` or `CAA` next to an unproxied `CNAME` warns but passes. DNSControl will refuse the combination after the merge, so the record never lands. Move the record to its own dotted name, which is what [Records](./records/) describes, or set
 `"proxied": true` if you genuinely need both on one name.
@@ -88,7 +86,7 @@ not registry preferences; use `A` and `AAAA` there.
 - A wildcard needs the base name you already own: `"*.app" needs "app" in is-a.ceo
   claimed by the same owner first`. A wildcard widens your own name, never someone
   else's.
-- A bare `*`, `@`, or root-level underscore name is maintainer-only, because it
+- A bare `*`, `@`, or root-level underscore name is trusted-author-only, because it
   covers names nobody has claimed yet.
 - A CAA value is a bare domain, `letsencrypt.org`, never a URL.
 - A verification record belongs one label deeper than the name it verifies.

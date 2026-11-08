@@ -5,44 +5,36 @@ description: "The shape rules a pull request must satisfy, the review template, 
 
 That shape is not a style preference. A claim and a change to the validator are reviewed differently, revert differently, and are worth reading on different days.
 
-`scripts/check-format.js` enforces it, in its own job, before and separately from
-the validator.
+`scripts/validate.js` enforces it. There is no separate shape script any more: the rules that ask "may this author touch this path" are in the same file as the rules that ask "is this entry valid", because a reviewer should not have to read two verdicts to know whether a pull request can land.
 
 ## The shape rules
 
 | Rule | Message when it fails |
 | --- | --- |
-| Only `domains/` and the documentation | `a pull request may only add a file under domains/, or update the documentation. Move this change to its own pull request.` |
-| `domains/_meta.json`, `domains/SCHEMA.json`, `.github/` and `CODEOWNERS` are maintainer-only | `only a maintainer can change this file. A claim PR touches its own domains/<name>.<zone>.json and nothing else.` |
-| `scripts/`, `test/`, `dnsconfig.js`, `package.json` and `package-lock.json` are maintainer-only | `only a maintainer can change the validator, the DNS config or the test suite. Open a separate issue or pull request for that, and keep this one to your claim.` |
-| At most four files under `domains/` | `this pull request touches 6 files under domains/; a claim PR adds one entry (plus its _vercel.<name> sidecar if Vercel asked for one). Split the rest into their own pull requests.` |
-| The filename matches `<subdomain>.<zone>.json` | `the filename must be <subdomain>.<zone>.json, for example jane.is-a.ceo.json, @.is-a.ceo.json or _vercel.jane.is-a.ceo.json` |
-| The filename matches the `subdomain` and `domain` inside | `the file claims "jane" in "is-a.ceo", so it must be named "jane.is-a.ceo.json"` |
-| Two spaces, not tabs | `use two spaces for indentation, not tabs` |
-| A final newline | `end the file with a newline` |
-| Deleting an entry is a maintainer action | `deleting a name is a maintainer action. If you want to release your own subdomain, ask a maintainer, or open the pull request from the account named in "owner".` |
+| Only `domains/` and the documentation | `a claim pull request adds one file under domains/, or fixes a typo in the documentation` |
+| `registry/`, `.github/`, `scripts/`, `test/`, `dnsconfig.js` and `package.json` are trusted-author files | `only a trusted author can change this. A claim pull request touches its own domains/<name>.<zone>.json and nothing else` |
+| At most four files under `domains/` | `one pull request changes 6 files under domains/; a claim is one entry, plus its _vercel sidecar` |
+| The filename names a managed zone | `the name must be <subdomain>.<zone>.json, for example jane.is-a.ceo.json or @.is-a.ceo.json` |
+| Deleting an entry is a trusted-author action | `this name belongs to "jane"; releasing it is their call or a trusted author's` |
 
-The documentation paths are `README.md`, `CONTRIBUTING.md`, `LICENSE`,
-`.gitignore`, `.gitattributes` and anything under `docs/`. A claim pull request may
-also fix a typo in one of those; it may not restructure them.
+Two things left this table. The filename no longer has to agree with a `subdomain` key, because there is no such key: the filename is the name. And the whitespace rules went with the shape script, since a JSON file reindented by an editor is not a risk anyone needs CI to catch.
+
+The documentation paths are `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `LICENSE`, `.gitignore`, `.gitattributes` and any `.md` file. A claim pull request may also fix a typo in one of those; it may not restructure them.
 
 Four files under `domains/` is the real maximum: one claim plus its Vercel sidecar, with room to spare. Key order inside the file is not enforced, because it is taste rather than a rule a reviewer can read off the diff, and every existing entry orders its keys differently.
 
-## Two jobs on purpose
+## One job on purpose
 
-`check.yml` splits the shape check from the validation, and the split is
-deliberate.
+`check.yml` used to split the shape check from the validation, so that a docs-only pull request would not spend a DNSControl zone check on itself. The split cost more than it saved. Two jobs meant two triggers, two verdicts, and a filter that had to decide which changes "counted", which is a rule that can disagree with the real one.
 
-The `format` job runs on every pull request with no path filter, because the shape rules apply whether or not the change touches `domains/`. The `validate` job keeps a filter so a docs-only pull request does not spend time pushing a zone check through DNSControl.
-
-One job could not do both. It would have to either run the zone check on every pull request, or skip the shape rules on documentation changes.
+With the shape rules inside the validator, the filter has nothing left to guard. A pull request touching only documentation runs a validator that finds nothing to complain about, in about a second, and the same is true of the DNSControl parse. A green result that means the same thing every time is worth more than a skipped job.
 
 ## The review template
 
 `.github/pull_request_template.md` asks for four things, and leaves two of them as
 marked sections.
 
-The author ticks four boxes: agreement to the Terms, a reachable URL, `owner` as their own username, and a passing `npm run verify` locally.
+The author ticks five boxes: agreement to the Terms, a reachable URL, `owner.username` as their own handle, an `owner.id` or `owner.email` a maintainer can use, and a passing `npm run verify` locally.
 
 Then two sections, each wrapped in an HTML comment pair:
 
@@ -64,11 +56,9 @@ Three things follow from that rule.
 
 It checks out the base commit, not the pull request's head. It copies only
 `domains/*.json` files from the pull request, with `git show` into regular
-files, so a symlinked entry cannot make the runner read a path outside the checkout. And it restores `_meta.json`, `SCHEMA.json` and `_example.json` from the base branch, so a fork cannot loosen the policy in the same run that judges it.
+files, so a symlinked entry cannot make the runner read a path outside the checkout. And it restores all of `registry/` from the base branch, so a fork cannot loosen the policy in the same run that judges it.
 
-`scripts/pr-report.js` then runs the same three checks the `check` workflow runs,
-collects their `--json` output, and hands it to `scripts/render-report.js`. The comment it produces is a verdict, the problems grouped by file, and a hint per problem: the filename rule, the one-name-per-person rule, the two-space indent. It does not print a DNSControl diff, because the job has no Cloudflare token and
-`check` is the only DNSControl command that runs without one.
+`scripts/report.js` runs the validator, reads its `--json` output, and renders the comment. The comment it produces is a verdict, the problems grouped by file, and a hint per problem drawn from the message itself. It does not print a DNSControl diff, because the job has no Cloudflare token and `check` is the only DNSControl command that runs without one.
 
 The comment itself carries a marker:
 

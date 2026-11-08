@@ -7,7 +7,7 @@ All seven workflows declare the permissions they need and nothing more. Every ac
 
 | Workflow | Trigger | Permissions | What it does |
 | --- | --- | --- | --- |
-| `check.yml` | pull request, push to `main`, manual | `contents: read`, `pull-requests: read` | Shape rules, validator, test suite, owner check, DNSControl check |
+| `check.yml` | pull request, push to `main`, manual | `contents: read` | Validator, test suite, DNSControl check |
 | `push.yml` | push to `main` touching `domains/**` or `dnsconfig.js` | `contents: read` | Re-validates, then pushes the zone, then asks the site to rebuild |
 | `registry-comment.yml` | pull request from a fork touching `domains/**` | `contents: read`, `pull-requests: write` | Comments the failure in words the claimant can act on |
 | `health.yml` | every 30 minutes, manual | `contents: read`, `issues: write` | Probes each zone's SOA and files one issue while a zone is down |
@@ -19,64 +19,34 @@ The push, the comment bot, the probes and the housekeeping each have their own p
 
 ## `check.yml`, in detail
 
-Two jobs, and the reason they are separate is worth knowing before changing them.
+One job, four steps, and no path filter.
 
-### `format`
-
-Runs on every pull request and has no path filter, because the shape rules apply whether or not the change touches the registry. It checks out with full history, installs with `npm ci`, fetches the base branch, and runs
-`npm run check:format` with `PR_AUTHOR` set to the pull request author.
+The split between a `format` job and a `validate` job is gone along with the scripts behind it. The shape rules, the owner check and the registry validation are all inside `scripts/validate.js` now, so they share one trigger and one verdict. A pull request that touches only documentation is still weighed against the rule that a claim is one file, and that rule is cheap to answer.
 
 `npm ci` rather than `npm install` because it installs exactly the lockfile. The
 repository has no dependencies, so the practical effect is that a changed transitive dependency cannot slip into the checks.
 
-`fetch-depth: 0` and the explicit `git fetch` give the job the base branch, which
-the shape rules diff against. `PR_AUTHOR` is what lets them answer "is this author allowed to touch this path".
+`fetch-depth: 0` and the explicit `git fetch` give the job the base branch, which the policy comparison reads. `PR_AUTHOR` and `PR_AUTHOR_ID` are what let the claim rules answer "is this the account that opened the pull request".
 
-### `validate`
+The steps are:
 
-This job keeps a filter, and the filter is the interesting part.
-
-```bash
-if [ "$EVENT" != 'pull_request' ]; then
-  echo "registry=true" >> "$GITHUB_OUTPUT"
-  exit 0
-fi
-if files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename' 2>/dev/null); then
-  if echo "$files" | grep -qE '^(domains/|scripts/|test/|dnsconfig\.js|package\.json|.*\.json$)'; then
-    touched=true
-  fi
-else
-  touched=true
-fi
-```
-
-A push to `main` and a manual run always validate. A pull request validates when it touches a path that could change what reaches DNS. When the API call itself fails, the answer is `true`: an unknown change set is treated as a change, not as nothing to check.
-
-When the answer is `false`, the job still runs, skips its steps, and writes one line to the step summary: `No registry-relevant files changed, so nothing to validate.` A green check with a reason beats a skipped job with none.
-
-Every step after the filter is guarded by `steps.filter.outputs.registry == 'true'`, so the job is not half-run: it either does all four checks or none.
-
-The four checks are the shape of the registry, in the order a reviewer cares about:
-
-1. `npm run check` validates `domains/`, with `PR_AUTHOR` and
-   `REQUIRE_BASE_REF=1`.
-2. `npm test` runs the 128 test cases from the test suite.
-3. `npm run verify-owners` compares each entry's `owner` against the author. This
-   one runs only on a pull request, since it needs an author.
-4. `DNSControl check` runs through the shared action, which parses `dnsconfig.js`
+1. `npm run check` validates `domains/` and the policy files, with `PR_AUTHOR`
+   and `PR_AUTHOR_ID` set from the pull request.
+2. `npm test` runs the 72 test cases.
+3. `DNSControl check` runs through the shared action, which parses `dnsconfig.js`
    and every entry it loads, without contacting Cloudflare.
 
-The first three compare against what `main` had before this change, which is why the job checks out with full history and fetches the base branch on a pull request. The fourth needs no credentials at all, and that is deliberate: see [the secrets table](#secrets).
+The validator compares the policy files against what `main` had before this change, which is why the job checks out with full history and fetches the base branch. `DNSControl check` needs no credentials at all, and that is deliberate: see [the secrets table](#secrets).
 
 ## `pull_request` against `pull_request_target`
 
 Three workflows read pull request events, and which event they use is a security decision, not a preference.
 
 `check.yml` uses `pull_request`. The workflow runs in the context of the pull
-request, with a read-only token and no secrets, which is what makes it safe to run a contributor's code through the validator.
+request, with a read-only token and no secrets, which is what makes it safe to run a contributor's code through the validator. The validator is the only thing that reads the fork's files, and it reads them as data.
 
 `registry-comment.yml` and `label.yml` use `pull_request_target`, because they need
-to write to the pull request and a fork's token cannot. The write token is the reason the comment bot never runs fork code: it checks out the base branch, copies in only `domains/*.json`, and restores the maintainer-owned files.
+to write to the pull request and a fork's token cannot. The write token is the reason the comment bot never runs fork code: it checks out the base branch, copies in only `domains/*.json`, and restores all of `registry/` from the base, so a fork cannot loosen the policy in the run that judges it.
 
 `label.yml` needs no checkout at all, because it only reads the changed file list
 from the API.
@@ -114,7 +84,7 @@ Every workflow guards itself against overlapping runs, and the setting differs b
 
 | Secret | Used by | Scope |
 | --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | `push.yml` | `Zone.DNS` edit on every zone in `_meta.json` |
+| `CLOUDFLARE_API_TOKEN` | `push.yml` | `Zone.DNS` edit on every zone in `registry/zones.json` |
 | `SITE_DISPATCH_TOKEN` | `push.yml` | `repository_dispatch` on the website repository |
 | `GITHUB_TOKEN` | every workflow | The permissions block in each file |
 

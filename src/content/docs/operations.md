@@ -10,20 +10,19 @@ Two scheduled jobs watch the zone, one bot tidies idle pull requests, and a set 
 | Command | Runs | What it answers |
 | --- | --- | --- |
 | `npm run check` | `scripts/validate.js` | Is every entry in `domains/` valid? |
-| `npm run check:format` | `scripts/check-format.js` | Does this branch follow the repository layout? |
-| `npm test` | `node --test "test/**/*.test.js"` | Do the 128 cases still pass? |
-| `npm run verify` | The three above, in order | The verdict CI will reach |
-| `npm run verify-owners` | `scripts/verify-owners.js` | Does every `owner` match this pull request's author? |
-| `npm run health` | `scripts/health-check.js` | Does every zone in `_meta.json` answer with an SOA? |
+| `npm test` | `node --test "test/**/*.test.js"` | Do the 72 cases still pass? |
+| `npm run verify` | The two above, in order | The verdict CI will reach |
 | `npm run status` | `scripts/status.js` | What does every entry actually serve? |
-| `npm run vercel-proof` | `scripts/vercel-proof.js` | Write, list or remove a Vercel ownership sidecar |
+| `npm run zones` | `scripts/status.js --zones` | Does every zone answer with an SOA? |
+| `npm run proof` | `scripts/proof.js` | Write, list or remove a Vercel ownership sidecar |
+| `npm run audit` | `scripts/audit.js` | Does every declared proof token match live DNS? |
 
-There is also `scripts/audit-tokens.js`, which has no npm script because it reads live DNS and is a review tool rather than a check.
+Six scripts and no dependencies, so `npm install` only writes the lockfile's own contents and the checks run on Node's test runner.
 
 ## Zone health
 
 `health.yml` runs every 30 minutes. It resolves the SOA record of every zone listed
-in `domains/_meta.json`, with a 10 second timeout per query, and prints one line per zone:
+in `registry/zones.json`, with a 10 second timeout per query, and prints one line per zone:
 
 ```
 ok    is-a.ceo  SOA ns3.cloudflare.com. (serial 2391205)
@@ -47,12 +46,12 @@ A marker rather than a title match, because a title can be edited by anyone and 
 `guard.yml` runs every six hours at :17, and it answers a different question: is one
 page being served under two names?
 
-`node scripts/status.js --json --strict` resolves every entry, fetches it over
+`node scripts/status.js --json --strict` resolves every claim, fetches it over
 HTTPS, and hashes the body. Two names with the same hash are a collision.
 
 ```
 node scripts/status.js          # one line per entry, plus the collision groups
-node scripts/status.js --json   # { zone, zones, checked, collisions, rows }
+node scripts/status.js --json   # { zones, checked, collisions, rows }
 node scripts/status.js --strict # exit 1 when there is a collision
 ```
 
@@ -81,7 +80,7 @@ It closes itself with a comment once every entry serves its own page again.
 
 ## Vercel proofs
 
-`scripts/vercel-proof.js` writes the sidecar entry a Vercel ownership proof needs,
+`scripts/proof.js` writes the sidecar entry a Vercel ownership proof needs,
 so the record lands on a name of its own instead of on top of a CNAME.
 
 | Flag | What it does |
@@ -94,11 +93,11 @@ so the record lands on a name of its own instead of on top of a CNAME.
 | `--dry-run` | Prints the file without writing it. |
 | `--help` | Prints the usage lines. |
 
-Every write is followed by a validator run against the new file, so a sidecar that would fail the build fails the script instead. The mechanics of the record itself are in [Records](./records/#pointing-at-vercel).
+Every write is followed by a validator run against the new file, so a sidecar that would fail the check fails the script instead. The script also refuses a proof minted for a different name than `--name`, which is the mistake that hands an account to someone else. The mechanics of the record itself are in [Records](./records/#pointing-at-vercel).
 
 ## Token audit
 
-`scripts/audit-tokens.js` reads every `vc-domain-verify` value in the registry,
+`scripts/audit.js` reads every `vc-domain-verify` value in the registry,
 resolves the name it lives on, and reports what it finds:
 
 ```

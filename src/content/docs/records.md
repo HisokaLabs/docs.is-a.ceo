@@ -57,9 +57,7 @@ Do not test with `203.0.113.x` or `2001:db8::`. Both are rejected like any other
 }
 ```
 
-One target, written as a bare string or a one-item array. The string is the current form and the array is still accepted so older files keep working; the shipped
-`_example.json` uses the array. A trailing dot is optional, and `dnsconfig.js` adds
-one when it is missing.
+One target, written as a bare string or a one-item array. Both are accepted and the string is the shorter form. A trailing dot is optional, and `dnsconfig.js` adds one when it is missing.
 
 Three rules come with it.
 
@@ -133,16 +131,18 @@ An array of public hostnames. A `PTR`-only entry is accepted, which makes the re
 The CNAME goes in your own entry. The ownership proof, when Vercel asks for one, goes in a sidecar file one label deeper.
 
 ```bash
-node scripts/vercel-proof.js --name holder --token <token>
+node scripts/proof.js --name holder --token <token>
 ```
 
 The script writes `domains/_vercel.holder.is-a.ceo.json`, runs the validator against it, and prints the remaining steps. It also takes the whole line with `--proof "vc-domain-verify=holder.is-a.ceo,<token>"`, lists existing sidecars with `--list`, and deletes one with `--remove`. `--dry-run` prints the file without writing it.
+
+It refuses a proof minted for a name other than `--name`, because pasting someone else's proof finishes their ownership claim rather than yours.
 
 The reason for a separate file is DNS, not tidiness. `holder.is-a.ceo` already carries a CNAME, and a CNAME cannot share a name with a TXT record, so the proof cannot live in the same entry. DNSControl would fail the push after the merge.
 
 Commit both files in the same pull request if Vercel already shows the banner. After the merge, press Verify in Vercel, wait for **Valid Configuration**, then remove the sidecar in a second pull request. The TXT is only needed until the domain is attached; deleting it afterwards does not detach anything.
 
-A dotted name whose first label starts with `_` is an **auxiliary** entry. It does not count against the one-name-per-person rule and it skips the base-claim rule, but its `owner` still has to be your own GitHub username.
+A dotted name whose first label starts with `_` is an **auxiliary** entry. It stays out of the public subdomain list on the website, because it is a record under another claim rather than a name someone browses to. Its `owner` is still yours.
 
 ## Combinations that are accepted alone
 
