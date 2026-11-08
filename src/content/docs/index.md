@@ -11,26 +11,39 @@ The default target is **GitHub Pages**. Leave `records` out of your entry entire
 
 ## What the registry is
 
-The DNS data behind [is-a.ceo](https://is-a.ceo), kept in one repository so that every change is reviewable and reversible. Each claimed name is one JSON file.
+The DNS data behind [is-a.ceo](https://is-a.ceo), kept in one repository so that every change is reviewable and reversible. Each claimed name is one JSON file, and the filename is the name.
 
 ```
-domains/jane.is-a.ceo.json
+domains/jane.is-a.ceo.json     claims jane.is-a.ceo
 ```
 
 That file, the pull request that added it, and the commit that merged it are the whole record of who asked for the name, what it points at, and when it went live. There is no dashboard and no account to create.
 
+Policy lives beside the claims, not inside them:
+
+| Path | Holds |
+| --- | --- |
+| `domains/` | One JSON file per claim, and nothing else |
+| `registry/zones.json` | The zones this repository serves |
+| `registry/reserved.json` | Names the registry already points somewhere |
+| `registry/blocked.json` | Names refused under every zone |
+| `registry/trusted.json` | Who may edit code, policy, and other people's entries |
+| `registry/schema.json` | The shape of one entry |
+| `registry/example.json` | The file a claimant copies |
+
+Because `domains/` holds claims only, every file there is one by definition. There is no skip-list of filenames to keep in step.
+
 ## How a claim reaches the zone
 
 ```
-pull request  ->  check.yml   validate, test, verify the owner, DNSControl check
+pull request  ->  check.yml   validate the registry, run the suite, DNSControl check
 merge to main ->  push.yml    DNSControl push
                                 |
                                 v
                             Cloudflare  ->  the record answers
 ```
 
-`domains/` is the only directory a claimant edits. `dnsconfig.js` reads
-those files when DNSControl runs, so nothing is generated ahead of time and the push applies exactly what is committed.
+`domains/` is the only directory a claimant edits. `dnsconfig.js` reads those files when DNSControl runs, so nothing is generated ahead of time and the push applies exactly what is committed.
 
 Probes run on a schedule afterward and check that no two names ended up serving the same page.
 
@@ -40,12 +53,16 @@ A snapshot, not a live figure. The counts move as entries are claimed, so each r
 
 | Fact | Value | Where it comes from |
 | --- | --- | --- |
-| Entries in the registry | 22 | JSON files in `domains/`, excluding `_meta.json`, `_example.json` and `SCHEMA.json` |
-| Zones served | 1, and it is `is-a.ceo` | `zones` in `domains/_meta.json` |
+| Entries in the registry | 19 | JSON files in `domains/` |
+| Public subdomains | 16 | Entries minus the apex and the `_vercel` sidecars |
+| Zones served | 1, and it is `is-a.ceo` | `registry/zones.json` |
+| Reserved names | 380 | `registry/reserved.json`, managed by hand in Cloudflare instead of by an entry file |
+| Blocked names | 11 | `registry/blocked.json` |
+| Trusted authors | 3 | `registry/trusted.json` |
 | Workflows | 7 | `.github/workflows/*.yml` |
-| Maintenance scripts | 10 | `scripts/*.js` |
-| Test cases | 128 | `npm test`: 126 pass, 2 skipped on Windows because a filename cannot contain `*` there |
-| npm dependencies | none | `package.json` declares no dependencies, and the checks use Node's own test runner |
+| Scripts | 6 | `scripts/*.js` |
+| Test cases | 75 | `npm test`: 72 pass, 3 skipped on Windows because a filename cannot contain `*` |
+| npm dependencies | none | `package.json` declares none, and the checks use Node's own test runner |
 | Node in CI | 24 | `actions/setup-node` in every workflow |
 
 Snapshot taken 2026-11-08.
