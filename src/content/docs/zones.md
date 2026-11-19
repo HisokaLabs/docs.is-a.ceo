@@ -55,7 +55,7 @@ Records in Cloudflare are a separate matter. Nothing in this repository deletes 
 
 ```bash
 npm run check          # every entry validates against the new list
-npm run health         # the zone answers with an SOA
+npm run zones          # the zone answers with an SOA
 npm run status         # every entry in the zone serves something
 ```
 

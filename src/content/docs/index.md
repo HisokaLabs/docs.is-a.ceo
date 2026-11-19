@@ -47,25 +47,19 @@ merge to main ->  push.yml    DNSControl push
 
 Probes run on a schedule afterward and check that no two names ended up serving the same page.
 
-## What is in the repository today
+## What is in the repository
 
-A snapshot, not a live figure. The counts move as entries are claimed, so each row names where it came from if you want to recount.
+The numbers change as names are claimed, so this page does not quote them. Count them where they live:
 
-| Fact | Value | Where it comes from |
-| --- | --- | --- |
-| Entries in the registry | 19 | JSON files in `domains/` |
-| Public subdomains | 16 | Entries minus the apex and the `_vercel` sidecars |
-| Zones served | 1, and it is `is-a.ceo` | `registry/zones.json` |
-| Reserved names | 380 | `registry/reserved.json`, managed by hand in Cloudflare instead of by an entry file |
-| Blocked names | 11 | `registry/blocked.json` |
-| Trusted authors | 3 | `registry/trusted.json` |
-| Workflows | 7 | `.github/workflows/*.yml` |
-| Scripts | 6 | `scripts/*.js` |
-| Test cases | 75 | `npm test`: 72 pass, 3 skipped on Windows because a filename cannot contain `*` |
-| npm dependencies | none | `package.json` declares none, and the checks use Node's own test runner |
-| Node in CI | 24 | `actions/setup-node` in every workflow |
+| What | Where it lives |
+| --- | --- |
+| Entries in the registry | the JSON files in `domains/` |
+| Zones served | `registry/zones.json` |
+| Reserved and blocked names | `registry/reserved.json`, `registry/blocked.json` |
+| Trusted authors | `registry/trusted.json` |
+| Workflows, scripts and tests | `.github/workflows/`, `scripts/`, `npm test` |
 
-Snapshot taken 2026-11-08.
+Live badges for the entry count, open issues and open pull requests are on the [repository README](https://github.com/HisokaLabs/open-subdomains#readme), refreshed from GitHub itself rather than written by hand.
 
 ## Where to go next
 

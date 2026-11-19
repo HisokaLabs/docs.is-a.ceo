@@ -161,7 +161,7 @@ DNSControl expands `$CLOUDFLARE_API_TOKEN` from the environment. The real token 
 `push.yml` is the only workflow that writes to Cloudflare.
 
 It triggers on a push to `main` that changes `domains/**`, `registry/**` or
-`dnsconfig.js`, and on nothing else. A documentation merge does not start a push.
+`dnsconfig.js`, and on nothing else. A documentation merge does not start a push. A change under `registry/` does, because the zone list and the reserved list both reach the push through `dnsconfig.js`.
 
 Two guards come before the DNSControl step.
 

@@ -3,26 +3,27 @@ title: "Watchers and scripts"
 description: "The scheduled probes that file issues, the local commands, and the maintenance scripts for Vercel proofs and token audits."
 ---
 
-Two scheduled jobs watch the zone, one bot tidies idle pull requests, and a set of scripts does the work you can also run by hand.
+One scheduled workflow runs two probes, one bot tidies idle pull requests and drifting branches, and a set of scripts does the work you can also run by hand.
 
 ## Local commands
 
 | Command | Runs | What it answers |
 | --- | --- | --- |
 | `npm run check` | `scripts/validate.js` | Is every entry in `domains/` valid? |
-| `npm test` | `node --test "test/**/*.test.js"` | Do the 72 cases still pass? |
-| `npm run verify` | The two above, in order | The verdict CI will reach |
+| `npm run template` | `scripts/template.js` | Does a pull request body satisfy the template? |
+| `npm test` | `node --test "test/**/*.test.js"` | Do the test cases still pass? |
+| `npm run verify` | `check` and `test`, in order | The verdict CI will reach |
 | `npm run status` | `scripts/status.js` | What does every entry actually serve? |
 | `npm run zones` | `scripts/status.js --zones` | Does every zone answer with an SOA? |
 | `npm run proof` | `scripts/proof.js` | Write, list or remove a Vercel ownership sidecar |
 | `npm run audit` | `scripts/audit.js` | Does every declared proof token match live DNS? |
+| `npm run report` | `scripts/report.js` | The comment the review bot posts, as Markdown |
 
-Six scripts and no dependencies, so `npm install` only writes the lockfile's own contents and the checks run on Node's test runner.
+Seven scripts and no dependencies, so `npm install` only writes the lockfile's own contents and the checks run on Node's test runner.
 
 ## Zone health
 
-`health.yml` runs every 30 minutes. It resolves the SOA record of every zone listed
-in `registry/zones.json`, with a 10 second timeout per query, and prints one line per zone:
+`health.yml` runs every 30 minutes. It resolves the SOA record of every zone listed in `registry/zones.json`, with a 10 second timeout per query, and prints one line per zone:
 
 ```
 ok    is-a.ceo  SOA ns3.cloudflare.com. (serial 2391205)
@@ -43,11 +44,9 @@ A marker rather than a title match, because a title can be edited by anyone and 
 
 ## Subdomain guard
 
-`guard.yml` runs every six hours at :17, and it answers a different question: is one
-page being served under two names?
+The second job in the same workflow answers a different question: is one page being served under two names?
 
-`node scripts/status.js --json --strict` resolves every claim, fetches it over
-HTTPS, and hashes the body. Two names with the same hash are a collision.
+`node scripts/status.js --json --strict` resolves every claim, fetches it over HTTPS, and hashes the body. Two names with the same hash are a collision.
 
 ```
 node scripts/status.js          # one line per entry, plus the collision groups
@@ -80,8 +79,7 @@ It closes itself with a comment once every entry serves its own page again.
 
 ## Vercel proofs
 
-`scripts/proof.js` writes the sidecar entry a Vercel ownership proof needs,
-so the record lands on a name of its own instead of on top of a CNAME.
+`scripts/proof.js` writes the sidecar entry a Vercel ownership proof needs, so the record lands on a name of its own instead of on top of a CNAME.
 
 | Flag | What it does |
 | --- | --- |
@@ -97,8 +95,7 @@ Every write is followed by a validator run against the new file, so a sidecar th
 
 ## Token audit
 
-`scripts/audit.js` reads every `vc-domain-verify` value in the registry,
-resolves the name it lives on, and reports what it finds:
+`scripts/audit.js` reads every `vc-domain-verify` value in the registry, resolves the name it lives on, and reports what it finds:
 
 ```
 vc-domain-verify tokens: 3
@@ -112,8 +109,9 @@ vc-domain-verify tokens: 3
 
 Four things count against a token. It can be minted for a name the file does not claim. It can appear in more than one entry. It can be declared but missing from live DNS. And live DNS can hold extra tokens the registry no longer declares, which is what a half-removed sidecar leaves behind.
 
-`--strict` exits 1 when any token is minted for a name its file does not claim. It
-is not wired into a workflow: it reads public DNS, so it is a tool for reviewing a suspicious registry by hand.
+A sidecar may hold TXT that is not a proof line, so a non-proof value at `_vercel.<zone>` is reported as well and only needs a reviewer's yes.
+
+`--strict` exits 1 when any token is minted for a name its file does not claim. It is not wired into a workflow: it reads public DNS, so it is a tool for reviewing a suspicious registry by hand.
 
 ## Why the probes file issues instead of failing
 

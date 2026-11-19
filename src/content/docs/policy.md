@@ -103,9 +103,9 @@ Deleting an entry is a trusted author's action even when the entry is yours, so 
 
 ## Abuse
 
-Report abuse to [abuse@hisoka.net](mailto:abuse@hisoka.net), or read the published policy at [https://is-a.ceo/abuse](https://is-a.ceo/abuse), which states what happens after a report.
+Report abuse to [contact@hisoka.net](mailto:contact@hisoka.net) with the subject `abuse: <hostname>`, or read the published policy at [https://is-a.ceo/abuse](https://is-a.ceo/abuse), which states what happens after a report.
 
-Two registry mechanics exist because of abuse rather than tidiness. The shared-target rule stops two names from serving one site, and the guard workflow watches for the byte-identical pages that a misused Vercel proof produces.
+Two registry mechanics exist because of abuse rather than tidiness. A target another claimant holds earns a warning rather than a refusal, and a reviewer reads it with the abuse rule in mind. The guard workflow watches for the byte-identical pages that a misused Vercel proof produces.
 
 ## Licence
 

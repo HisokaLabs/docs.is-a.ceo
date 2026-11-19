@@ -13,10 +13,10 @@ The key list is closed. A key outside it fails the check with `unknown key "..."
 | `repo` | no | ≤ 200 characters | `owner/repo`, `github.com/owner/repo`, or a full `https://` URL. Shown on the site. |
 | `description` | no | ≤ 200 characters | One line, shown on the site. |
 | `proxied` | no | `true` or `false`, defaults to `false` | Route A/AAAA/CNAME through the Cloudflare proxy. |
-| `records` | no | ≤ 20 values per type | The DNS records. Omit the key entirely for GitHub Pages. |
+| `records` | no | one value per type, except `TXT`, which holds many | The DNS records. Omit the key entirely for GitHub Pages. |
 | `$schema` | no | none | Editor hint, usually `../registry/schema.json`. Enables autocomplete. |
 
-The file itself is capped at 64 KiB, and it has to be a regular file. A symlink is refused, because it reads a path this repository does not control.
+The file itself is capped at 128 KiB, and it has to be a regular file. A symlink is refused, because it reads a path this repository does not control.
 
 ## `owner`
 
@@ -45,7 +45,7 @@ Two of the three carry more weight than the third when a pull request arrives.
 
 `username` is what most entries use, and it is compared against the account that opened the pull request.
 
-`email` alone cannot be matched to an account, so an entry identified only by email can only be filed by a trusted author. That is a real limitation, not a rounding error: without a username or an id there is nothing to compare, and waving the check through would let anyone file a name under any address they type. If you want to claim a name yourself, include `username` or `id`.
+`email` alone cannot be matched to an account, so an entry identified only by email passes the check with a note and waits on a maintainer to confirm it by hand. Without a username or an id there is nothing to compare, and waving the check through would let anyone file a name under any address they type. If you want to claim a name yourself, include `username` or `id`.
 
 Which identity is used for the anti-takeover rules (a wildcard or an underscore record needing its base claimed by the same person) falls back in that order: `id`, then `username`, then `email`. So two entries belong to the same person when their strongest shared key matches, and two strangers who both left a different key out never match each other by accident.
 
@@ -81,7 +81,7 @@ AAAA  2606:50c1:8000::153  2606:50c1:8001::153  2606:50c1:8002::153  2606:50c1:8
 
 So `jane.is-a.ceo` serves `jane.github.io` as soon as the merge lands, with no configuration on your side. This is the whole setup for most claims.
 
-An empty `records: {}` is a different thing, and it is refused. Either leave the key out or put at least one record in it.
+An empty `records: {}` is a different thing, and it draws a note rather than a refusal: the name falls back to the GitHub Pages default, and the check asks you to remove the key instead, because an empty block looks like an edit that went wrong. Either leave the key out or put at least one record in it.
 
 ## How the keys are checked
 

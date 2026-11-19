@@ -1,55 +1,50 @@
 ---
 title: "Workflows"
-description: "All seven GitHub Actions workflows: what triggers each one, what it does, and why it is built that way."
+description: "All six GitHub Actions workflows: what triggers each one, what it does, and why it is built that way."
 ---
 
-All seven workflows declare the permissions they need and nothing more. Every action is pinned by commit SHA with the version in a comment, so a moved tag cannot change what runs. Node is 24 wherever the workflow runs a script.
+All six workflows declare the permissions they need and nothing more. Every action is pinned by commit SHA with the version in a comment, so a moved tag cannot change what runs. Node is 24 wherever the workflow runs a script.
 
 | Workflow | Trigger | Permissions | What it does |
 | --- | --- | --- | --- |
-| `check.yml` | pull request, push to `main`, manual | `contents: read` | Validator, test suite, DNSControl check |
-| `push.yml` | push to `main` touching `domains/**` or `dnsconfig.js` | `contents: read` | Re-validates, then pushes the zone, then asks the site to rebuild |
-| `registry-comment.yml` | pull request from a fork touching `domains/**` | `contents: read`, `pull-requests: write` | Comments the failure in words the claimant can act on |
-| `health.yml` | every 30 minutes, manual | `contents: read`, `issues: write` | Probes each zone's SOA and files one issue while a zone is down |
-| `guard.yml` | every 6 hours at :17 UTC, manual | `contents: read`, `issues: write` | Probes every entry and files one issue when two names serve one page |
-| `stale.yml` | daily at 03:17 UTC, manual | `issues: write`, `pull-requests: write` | Marks idle pull requests after 14 days, closes them after 7 more |
-| `label.yml` | pull request opened, reopened or updated | `contents: read`, `issues: write`, `pull-requests: write` | Labels by changed file |
+| `check.yml` | pull request, push to `main`, manual | `contents: read`, `pull-requests: read` | Validator, body check, test suite, DNSControl check |
+| `push.yml` | push to `main` touching `domains/**`, `registry/**` or `dnsconfig.js` | `contents: read` | Re-validates, then pushes the zone, then asks the site to rebuild |
+| `review.yml` | pull request opened, reopened, updated or marked ready | `contents: read`, `issues: write`, `pull-requests: write` | Labels by changed file and comments the verdict |
+| `health.yml` | every 30 minutes, manual | `contents: read`, `issues: write` | Probes each zone's SOA and every entry's page, files one issue per failure |
+| `branches.yml` | daily at 04:41 UTC, manual | `contents: read`, `pull-requests: write`, `issues: write` | Updates open pull requests against `main`, labels the ones that conflict |
+| `stale.yml` | daily at 03:17 UTC, manual | `issues: write`, `pull-requests: write` | Marks idle pull requests after 21 days, closes them after 7 more |
 
-The push, the comment bot, the probes and the housekeeping each have their own page: [DNS pipeline](./dns-pipeline/), [Pull request checks](./pull-request/), [Watchers and scripts](./operations/).
+The push, the review bot, the probes and the housekeeping each have their own page: [DNS pipeline](./dns-pipeline/), [Pull request checks](./pull-request/), [Watchers and scripts](./operations/).
 
 ## `check.yml`, in detail
 
-One job, four steps, and no path filter.
+One job named `Validate registry`, and the name is load-bearing: the ruleset on `main` requires that exact context, so renaming the job without updating the ruleset leaves every branch permanently unmergeable.
 
-The split between a `format` job and a `validate` job is gone along with the scripts behind it. The shape rules, the owner check and the registry validation are all inside `scripts/validate.js` now, so they share one trigger and one verdict. A pull request that touches only documentation is still weighed against the rule that a claim is one file, and that rule is cheap to answer.
-
-`npm ci` rather than `npm install` because it installs exactly the lockfile. The
-repository has no dependencies, so the practical effect is that a changed transitive dependency cannot slip into the checks.
-
-`fetch-depth: 0` and the explicit `git fetch` give the job the base branch, which the policy comparison reads. `PR_AUTHOR` and `PR_AUTHOR_ID` are what let the claim rules answer "is this the account that opened the pull request".
+The trigger list includes `edited`, so editing the pull request body alone re-runs the check. That matters because the body is checked now: a pull request whose author fills in the template after opening it gets a fresh verdict without pushing an empty commit.
 
 The steps are:
 
-1. `npm run check` validates `domains/` and the policy files, with `PR_AUTHOR`
-   and `PR_AUTHOR_ID` set from the pull request.
-2. `npm test` runs the 72 test cases.
-3. `DNSControl check` runs through the shared action, which parses `dnsconfig.js`
-   and every entry it loads, without contacting Cloudflare.
+1. `npm run check` validates `domains/` and the policy files, with `PR_AUTHOR`,
+   `PR_AUTHOR_ID`, `PR_LABELS`, `CHANGED_FILES` and `DELETED_FILES` gathered into
+   the environment first.
+2. `node scripts/template.js` checks the pull request body against the template,
+   unless the author is trusted or carries a bypass label.
+3. `npm test` runs the suite.
+4. `DNSControl check` runs through the shared action, but only when something it
+   reads changed. A change under `domains/`, `registry/` or in `dnsconfig.js`
+   always runs it; a docs-only pull request skips it.
+
+The change-set rules read that metadata. `CHANGED_FILES` holds the changed paths and `DELETED_FILES` the removed ones, gathered separately because a shallow diff cannot tell a removed file from one that never existed. The claimant check and the body check both read `PR_LABELS`, which is how the bypass labels reach the scripts.
 
 The validator compares the policy files against what `main` had before this change, which is why the job checks out with full history and fetches the base branch. `DNSControl check` needs no credentials at all, and that is deliberate: see [the secrets table](#secrets).
 
 ## `pull_request` against `pull_request_target`
 
-Three workflows read pull request events, and which event they use is a security decision, not a preference.
+Two workflows read pull request events, and which event they use is a security decision, not a preference.
 
-`check.yml` uses `pull_request`. The workflow runs in the context of the pull
-request, with a read-only token and no secrets, which is what makes it safe to run a contributor's code through the validator. The validator is the only thing that reads the fork's files, and it reads them as data.
+`check.yml` uses `pull_request`. The workflow runs in the context of the pull request, with a read-only token and no secrets, which is what makes it safe to run a contributor's code through the validator. The validator is the only thing that reads the fork's files, and it reads them as data.
 
-`registry-comment.yml` and `label.yml` use `pull_request_target`, because they need
-to write to the pull request and a fork's token cannot. The write token is the reason the comment bot never runs fork code: it checks out the base branch, copies in only `domains/*.json`, and restores all of `registry/` from the base, so a fork cannot loosen the policy in the run that judges it.
-
-`label.yml` needs no checkout at all, because it only reads the changed file list
-from the API.
+`review.yml` uses `pull_request_target`, because it needs to write to the pull request and a fork's token cannot. The write token is the reason the review bot never runs fork code: it checks out the base branch, copies in only the `domains/*.json` files the pull request changed, and restores all of `registry/` from the base, so a fork cannot loosen the policy in the run that judges it.
 
 ## Trigger types replace the default set
 
@@ -58,13 +53,10 @@ from the API.
 ```yaml title=".github/workflows/check.yml"
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 ```
 
-Naming `types` replaces GitHub's default set rather than adding to it. That is why
-`opened` and `ready_for_review` are both listed: a draft pull request fires
-`opened`, and the same pull request fires `ready_for_review` when it is marked
-ready. Without both, the first push to a draft would never be checked.
+Naming `types` replaces GitHub's default set rather than adding to it. That is why the list reads as it does: a draft pull request fires `opened`, the same pull request fires `ready_for_review` when it is marked ready, and `edited` covers a body fixed up after the fact. Without all three, one of those moments would never be checked.
 
 ## Concurrency
 
@@ -75,10 +67,15 @@ Every workflow guards itself against overlapping runs, and the setting differs b
 | `${{ github.workflow }}-${{ github.ref }}` | yes | A newer commit makes the older check pointless |
 | `dns-push` | no | Two overlapping pushes would race on the Cloudflare API |
 | `zone-health` | no | A cancelled probe would report nothing about a zone |
-| `subdomain-guard` | no | Same reason, and it edits an issue |
-| `stale` | no | Short and idempotent, but cancelling it mid-run serves nobody |
-| `label-${{ number }}` | yes | The newest file list is the right one |
-| `registry-comment-${{ number }}` | yes | The newest diff is the one to explain |
+| `review-${{ number }}` | yes | The newest diff is the one to label and explain |
+| `pr-branches` | no | Short and idempotent, but cancelling it mid-run serves nobody |
+| `stale` | no | Same reason |
+
+## Branch updates
+
+`branches.yml` runs once a day and calls `updateBranch` on every open, non-draft pull request, the way is-a-dev does. A pull request that has drifted behind `main` gets caught up without its author having to know.
+
+When the update cannot happen because the branch conflicts with `main`, the pull request gets a `merge conflict` label and one comment, guarded by a marker so the comment is never repeated. The check cannot judge a branch that does not merge, so the failure is named instead of left as a red cross nobody can act on.
 
 ## Secrets
 
@@ -88,9 +85,6 @@ Every workflow guards itself against overlapping runs, and the setting differs b
 | `SITE_DISPATCH_TOKEN` | `push.yml` | `repository_dispatch` on the website repository |
 | `GITHUB_TOKEN` | every workflow | The permissions block in each file |
 
-`GITHUB_TOKEN` has no scope of its own here; the `permissions` block decides. A
-workflow that omits it gets the repository default, which is usually wider than the job needs, so each file states its own.
+`GITHUB_TOKEN` has no scope of its own here; the `permissions` block decides. A workflow that omits it gets the repository default, which is usually wider than the job needs, so each file states its own.
 
-Only one workflow holds the Cloudflare token, and it only runs on `main`. That is why a pull request from a fork can be checked at all: `check.yml` runs
-`DNSControl check`, the one subcommand that parses the configuration without
-talking to a provider, and the action drops the credentials argument for it. The validator, the test suite and the shape rules need nothing privileged either.
+Only one workflow holds the Cloudflare token, and it only runs on `main`. That is why a pull request from a fork can be checked at all: `check.yml` runs `DNSControl check`, the one subcommand that parses the configuration without talking to a provider, and the action drops the credentials argument for it. The validator, the test suite and the body check need nothing privileged either.

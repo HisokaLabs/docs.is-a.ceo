@@ -41,7 +41,7 @@ For `jane`, that is `domains/jane.is-a.ceo.json`. The filename is the whole name
 
 The `id` is the number at `https://api.github.com/users/jane`. It is the strongest identity you can give, because a username can be released and taken by someone else while the number cannot.
 
-Include `username` or `id` when you are filing the claim yourself. An entry with only an `email` has nothing to compare against your account, so the check refuses it and only a trusted author can file it.
+Include `username` or `id` when you are filing the claim yourself. An entry with only an `email` has nothing to compare against your account, so the check passes it with a note and a maintainer confirms it by hand.
 
 :::caution
 `owner.username` has to be your own GitHub handle, and the pull request has to be opened by that account. When both sides carry a numeric id, CI compares the ids, so a claim cannot be filed on someone else's behalf.
@@ -57,15 +57,15 @@ it has to be reachable and finished. A parked page or a placeholder is refused. 
 npm run verify
 ```
 
-That is the same command CI runs: `npm run check` validates `domains/`, then `npm test` runs the 72 test cases.
+That is the same command CI runs: `npm run check` validates `domains/`, then `npm test` runs the test suite.
 
 One difference, and it is deliberate. The claimant check answers "did the account that opened this pull request write this entry", which needs to know who the author is. Without `PR_AUTHOR` and `PR_AUTHOR_ID` in the environment that rule is skipped rather than guessed. CI always passes both.
 
-Three tests are skipped on Windows, because NTFS will not let a file be named `*.app.is-a.ceo.json`. They run on Linux, where CI runs.
+A few tests are skipped on Windows, because NTFS will not let a file be named `*.app.is-a.ceo.json`. They run on Linux, where CI runs. A local run with every non-skipped test passing is a full pass.
 
 ## Open the pull request
 
-Open it against `main` and fill in the template. The `check` workflow validates the registry, runs the suite, and pushes the config through `DNSControl check`, which parses everything without contacting Cloudflare. A bot then comments the verdict on the pull request, one line per problem with a hint on how to fix it, before anyone reviews it.
+Open it against `main` and fill in the template. The `check` workflow validates the registry, reads the template back, runs the suite, and pushes the config through `DNSControl check`, which parses everything without contacting Cloudflare. The review bot then comments the verdict on the pull request, one line per problem with a hint on how to fix it, before anyone reviews it.
 
 A claim pull request is one file. If your change also touches the scripts, the policy files, or someone else's entry, split it into its own pull request; the [shape rules](./pull-request/) explain why the split is enforced rather than requested.
 

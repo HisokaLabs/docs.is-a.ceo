@@ -10,14 +10,14 @@ that caused it, and the ones worth learning by sight are the ones CI prints befo
 
 | Message | Fix |
 | --- | --- |
-| `unknown key "descrition"` | A key outside the accepted list. Ten are allowed, and `description` is one of them. |
-| `zone "is-a.co" is not a managed zone (is-a.ceo)` | A typo in `domain`. |
-| `file must be named "jane.is-a.ceo.json"` | The filename and the `subdomain` inside disagree. Rename the file. |
-| `"admin" is reserved by the registry` | Pick another label. The full policy is in [Name policy](./policy/). |
+| `unknown key "descrition"` | A key outside the accepted list. `owner`, `repo`, `description`, `proxied` and `records` are the ones an entry takes. |
+| `"is-a.co" is not a managed zone (is-a.ceo)` | A typo in the filename. The zone is part of the filename, not a key inside the file. |
+| `the name must be <subdomain>.<zone>.json` | The filename ends in no managed zone. Name it `jane.is-a.ceo.json`. |
+| `"paypal" is blocked by the registry and cannot be claimed under any zone` | Pick another label. The full policy is in [Name policy](./policy/). |
 | `"blog" is reserved` | The word is on `registry/reserved.json`. Pick a personal handle. |
-| `must define at least one of records.A, AAAA, CNAME, MX, NS, SRV, PTR, or TXT alone` | `records: {}`. Delete the key for the GitHub Pages default, or put a record in it. |
+| `"records" publishes nothing, so the name falls back to the GitHub Pages default. Remove the key to say that on purpose` | `records: {}`. Delete the key for the GitHub Pages default, or put a record in it. |
 | `invalid JSON at position 412` | A missing comma, a trailing comma, or a smart quote pasted from a document. |
-| `"203.0.113.10" is not a public IPv4 address` | The documentation ranges are refused like any private address. Use the real one. |
+| `"203.0.113.10" is a documentation address, so nothing on the internet reaches it` | A note, not a refusal. The record still merges; use the real address so the name resolves. |
 
 One failure has no message worth reading, because it never gets that far: on Windows you cannot create a file named `*.app.is-a.ceo.json`. NTFS forbids `*` in a filename. Add the entry through the GitHub web interface instead. CI runs on Linux, where it is fine, and the two wildcard tests in the suite are skipped on Windows for the same reason.
 
@@ -25,10 +25,10 @@ One failure has no message worth reading, because it never gets that far: on Win
 
 | Message | Fix |
 | --- | --- |
-| `a pull request may only add a file under domains/, or update the documentation` | Split the unrelated change into its own pull request. |
+| `a claim pull request adds one file under domains/, or fixes a typo in the documentation` | Split the unrelated change into its own pull request. |
 | `only a trusted author can change this` | You touched `registry/`, `.github/`, `scripts/` or `dnsconfig.js`. Drop it from this pull request. |
 | `only an admin can change the trusted list` | `registry/trusted.json` is admin-only. |
-| `this pull request touches 6 files under domains/` | A claim is one file, plus its `_vercel` sidecar. |
+| `this pull request changes 6 files under domains/; splitting them makes the review shorter, but it is allowed` | A note, not a refusal. A claim is one file plus its `_vercel` sidecar, but a crowd of them still merges. |
 | `releasing it is their call or a trusted author's` | Ask the owner or a trusted author to remove the entry, even when it is yours. |
 
 It passes locally and fails in CI. Three reasons, in order of likelihood.
@@ -45,7 +45,7 @@ The change may be a symlink or a file in a subdirectory, both of which are refus
 One warning produces a green check and a failed push. It is not a validator bug.
 
 A `TXT` or `CAA` next to an unproxied `CNAME` warns but passes. DNSControl will refuse the combination after the merge, so the record never lands. Move the record to its own dotted name, which is what [Records](./records/) describes, or set
-`"proxied": true` if you genuinely need both on one name.
+`"proxied": true` if you need both on one name.
 
 That second case is the one to read twice, because the pull request looks fine and approves cleanly. The warning text says the push will fail; it means it.
 
@@ -67,7 +67,7 @@ skipping the site rebuild` and still exits 0, because a DNS push that worked sho
 
 ### Two names serve the same page
 
-The guard workflow files an issue with `Subdomain guard: one page is being served under two names`, naming both. The cause is almost always a `vc-domain-verify` TXT that was minted for one name and pasted into another entry: it finishes another account's ownership proof, and the second name starts serving the first account's page.
+The guard job in `health.yml` files an issue with `Subdomain guard: one page is being served under two names`, naming both. The cause is almost always a `vc-domain-verify` TXT that was minted for one name and pasted into another entry: it finishes another account's ownership proof, and the second name starts serving the first account's page.
 
 Delete the sidecar entry from the name that does not own the proof. `npm run status` shows the current verdict per entry, including which names share bytes.
 
@@ -85,20 +85,23 @@ not registry preferences; use `A` and `AAAA` there.
 
 - A wildcard needs the base name you already own: `"*.app" needs "app" in is-a.ceo
   claimed by the same owner first`. A wildcard widens your own name, never someone
-  else's.
+  else's. The same applies to a `_vercel.<name>` sidecar and to other `_label.<name>`
+  verification files.
 - A bare `*`, `@`, or root-level underscore name is trusted-author-only, because it
   covers names nobody has claimed yet.
 - A CAA value is a bare domain, `letsencrypt.org`, never a URL.
-- A verification record belongs one label deeper than the name it verifies.
-- Two owners cannot point at the same host. Two zones using the same address do not
-  count, since they are independent hosts.
+- A verification record the host reads from your own name goes one label deeper
+  than that name. One the host reads from the zone root goes in a `_label.<name>`
+  sidecar, which [Verification TXT](./records/#verification-txt-at-the-zone-root) explains.
+- A target another claimant already uses only draws a warning, not a refusal.
+  Point at your own host and the warning disappears.
 
 ## What to run before asking
 
 ```bash
 npm run verify            # validator, shape rules, full test suite
 npm run status            # what every entry actually serves
-npm run health            # does every zone answer with an SOA
+npm run zones             # does every zone answer with an SOA
 node scripts/status.js --json | head -60
 ```
 

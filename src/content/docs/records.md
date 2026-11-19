@@ -19,40 +19,44 @@ Every value is an array, so a name can hold several records of one type. A singl
 | `CAA` | array of `{ flag, tag, value }` | any name, including next to a proxied CNAME |
 | `PTR` | array of hostnames | any name |
 
-Each type accepts at most 20 values. An empty array is refused: remove the key instead.
+An array emptied by a repeated value is dropped with a note rather than refused, and a block whose lists all empty out falls back to the GitHub Pages default.
 
 ## A and AAAA
 
-The address has to be publicly routable. A public name pointing into a private network is a DNS-rebinding setup, so every non-public range is refused, including the documentation ranges people reach for when testing.
+The address has to be publicly routable. A public name pointing into a private network is a DNS-rebinding setup, so the ranges that can never reach a host are refused and the ranges that only some machines can reach draw a note.
 
 | Refused | Why |
 | --- | --- |
 | `0.0.0.0/8`, `240.0.0.0/4` | This network and reserved space |
-| `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` | RFC 1918 private networks |
 | `127.0.0.0/8` | Loopback |
 | `169.254.0.0/16` | Link-local, including cloud metadata endpoints |
-| `100.64.0.0/10` | CGNAT and carrier space, which includes Tailscale |
-| `192.0.0.0/24`, `198.18.0.0/15` | IETF assignments and benchmarking |
-| `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24` | TEST-NET-1, -2 and -3 |
 | `224.0.0.0/4` | Multicast |
 
-For IPv6 the same idea applies: `::`, `::1`, `fe80::/10` link-local, `fc00::/7` unique-local, `ff00::/8` multicast and `2001:db8::/32` documentation space are all refused. Addresses that carry an IPv4 address inside them, such as
+| Noted, but accepted | Why |
+| --- | --- |
+| `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16` | RFC 1918 private networks; only a machine on that network reaches it |
+| `100.64.0.0/10` | CGNAT and carrier space, which includes Tailscale |
+| `192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24` | TEST-NET-1, -2 and -3; nothing on the internet reaches it |
+
+For IPv6 the same split applies: `::`, `::1`, `fe80::/10` link-local and `ff00::/8` multicast are refused, while `fc00::/7` unique-local and `2001:db8::/32` documentation space pass with a note. Addresses that carry an IPv4 address inside them, such as
 `::ffff:192.168.1.1`, `64:ff9b::/96` and `2002::/16`, are judged by that inner
 address.
 
-:::danger
-Do not test with `203.0.113.x` or `2001:db8::`. Both are rejected like any other non-public address, and the failure message names the address rather than the reason.
+:::note
+A private or documentation address passes the check and still serves nothing to the public. If the entry is meant to be reachable, use a public address.
 :::
 
 ## CNAME
 
 ```json title="domains/jane.is-a.ceo.json"
 {
-  "domain": "is-a.ceo",
-  "subdomain": "jane",
-  "owner": "jane",
+  "$schema": "../registry/schema.json",
+  "owner": {
+    "username": "jane",
+    "id": 1234567
+  },
   "records": {
-    "CNAME": ["jane.github.io"]
+    "CNAME": "jane.github.io"
   }
 }
 ```
@@ -68,18 +72,40 @@ A CNAME cannot point at its own name or at the apex, which would be a loop.
 A CNAME cannot share its name with `A`, `AAAA`, `MX`, `NS`, `SRV` or `PTR`. That is a DNS rule, not a registry preference, and DNSControl will reject the pair after the merge even if the registry let it through. The registry refuses it first, because a push that fails after merge leaves the zone behind the repository until someone reverts.
 
 `TXT` and `CAA` may sit next to a CNAME, with one caveat: on an unproxied CNAME,
-DNSControl rejects the pair, so the push fails. Set `"proxied": true` if you genuinely need both on one name. Most people need the verification record on a dotted name instead, one level deeper, which is the next section.
+DNSControl rejects the pair, so the push fails. Set `"proxied": true` if you need both on one name. Most people need the verification record on a dotted name instead, one level deeper, which is the next section.
 
 ## TXT
 
 An array of non-empty strings, at most 255 characters each, no control characters. This is where SPF, DMARC and provider verifications go.
 
-One value gets extra attention: `vc-domain-verify=<name>,<token>`. Vercel issues it when a domain is attached to a project, and the registry pins it to the name it verifies. A proof for `holder.is-a.ceo` counts on `_vercel.holder.is-a.ceo` and nowhere else, because a proof pasted onto a different name would finish someone else's ownership claim.
+A verification line is TXT like any other, so the validator judges only the shape: non-empty, 255 characters or fewer. What decides whether a verification works is the name the provider reads the record from, which is the subject of the next section.
 
+## Verification TXT at the zone root
+
+Some hosts verify ownership by reading a TXT record from the root of the zone. They do this when the domain they see is `is-a.ceo` rather than your subdomain, which happens because `is-a.ceo` is not on the [Public Suffix List](https://publicsuffix.org/) yet. Vercel is the common case: it checks for `vc-domain-verify=<name>,<token>` in the TXT records at `_vercel.is-a.ceo`.
+
+You cannot write to the zone root yourself, so the proof needs a maintainer. A sidecar file named `_vercel.<your-name>.is-a.ceo.json` holds the proof on a name of its own, and a trusted author copies the TXT line to `_vercel.is-a.ceo`, the root-level name the host reads.
+
+```json title="domains/_vercel.jane.is-a.ceo.json"
+{
+  "$schema": "../registry/schema.json",
+  "owner": {
+    "username": "jane",
+    "id": 1234567
+  },
+  "records": {
+    "TXT": [
+      "vc-domain-verify=jane.is-a.ceo,c26ed8dd5d74d95219e8"
+    ]
+  }
+}
 ```
-domains/_vercel.holder.is-a.ceo.json: this Vercel proof verifies "holder.is-a.ceo",
-so it only counts on "_vercel.holder.is-a.ceo", not on holder.is-a.ceo
-```
+
+After the merge this publishes `_vercel.jane.is-a.ceo`, the file's own name. The root-level `_vercel.is-a.ceo` copy is a maintainer's move, so ask for it in the pull request when the host verifies at the zone root. The same works for any other label a host names; `_dmarc` and `_domainkey` are the registry's own and are never part of this.
+
+Commit the sidecar in the same pull request as the claim if the host already shows its banner. Once the host shows the domain as verified, the TXT has done its job and the sidecar can be removed in a second pull request.
+
+The sidecar rule sits on top: `_vercel.jane` requires `jane` to be claimed by the same owner, in the same pull request or an earlier one. The proof is only yours to publish if `jane` is your name.
 
 ## MX
 
@@ -128,7 +154,7 @@ An array of public hostnames. A `PTR`-only entry is accepted, which makes the re
 
 ## Pointing at Vercel
 
-The CNAME goes in your own entry. The ownership proof, when Vercel asks for one, goes in a sidecar file one label deeper.
+The CNAME goes in your own entry. The ownership proof, when Vercel asks for one, goes in a sidecar file one label deeper, which [Verification TXT at the zone root](#verification-txt-at-the-zone-root) explains. To write the sidecar:
 
 ```bash
 node scripts/proof.js --name holder --token <token>
@@ -154,4 +180,4 @@ An entry does not have to resolve to an address. These are all valid on their ow
 - `PTR` only: a reverse record.
 - `TXT` only: a verification record.
 
-The validator refuses an entry with no records at all unless the key is absent entirely, which is the GitHub Pages default described in [Entry fields](./fields/).
+An entry whose records publish nothing falls back to the GitHub Pages default with a note, and the key's absence is the same default without the note, as [Entry fields](./fields/) describes.
